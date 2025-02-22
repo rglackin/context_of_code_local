@@ -3,20 +3,25 @@
     "disable_existing_loggers": false,
     "formatters": {
         "standard": {
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            "format": " %(levelname)s[%(asctime)s - %(name)s]: %(message)s",
+            "class": "src.colored_formatter.ColoredFormatter"
+        },
+        "json": {
+            "format": "{\"asctime\": \"%(asctime)s\", \"name\": \"%(name)s\", \"levelname\": \"%(levelname)s\", \"message\": %(message)s}",
+            "class": "pythonjsonlogger.jsonlogger.JsonFormatter"
         }
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "standard",
-            "level": "DEBUG"
+            "level": "INFO"
         },
         "file": {
-            "class": "logging.FileHandler",
-            "formatter": "standard",
+            "class": "src.json_file_handler.JsonFileHandler",
+            "formatter": "json",
             "level": "DEBUG",
-            "filename": "logs/app.log",
+            "filename": "logs/log.json",
             "mode": "a"
         }
     },

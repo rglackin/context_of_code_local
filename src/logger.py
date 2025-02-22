@@ -2,8 +2,9 @@ import logging.config
 import json
 import os
 
+
 def setup_logging(
-    default_path='config/logging_config.json',
+    default_path='config.json',
     default_level=logging.INFO,
     env_key='LOG_CFG'
 ):
