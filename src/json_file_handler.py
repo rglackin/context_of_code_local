@@ -20,10 +20,12 @@ class JsonFileHandler(logging.FileHandler):
         with open(self.filename, 'r+') as f:
             f.seek(0)
             data = f.read().strip()
-            if data == '[]':
+            if not data or data == '[]':
                 f.seek(0)
                 f.write('[' + log_entry + ']')
             else:
                 f.seek(0)
-                data = data[:-1] + ',' + log_entry + ']'
+                data = data.rstrip(']')
+                data += ',' + log_entry + ']'
+                f.seek(0)
                 f.write(data)

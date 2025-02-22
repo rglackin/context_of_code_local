@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging.config
 import json
 import os
@@ -22,6 +23,9 @@ def setup_logging(
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
         
+        date_str = datetime.now().strftime('%Y-%m-%d')
+        config['handlers']['file']['filename'] = config['handlers']['file']['filename'].replace('%(date)', date_str)
+
         logging.config.dictConfig(config)
     else:
         logging.basicConfig(level=default_level)

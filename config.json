@@ -21,7 +21,7 @@
             "class": "src.json_file_handler.JsonFileHandler",
             "formatter": "json",
             "level": "DEBUG",
-            "filename": "logs/log.json",
+            "filename": "logs/%(date).json",
             "mode": "a"
         }
     },
