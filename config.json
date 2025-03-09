@@ -1,35 +1,5 @@
 {
-    "version": 1,
-    "disable_existing_loggers": false,
-    "formatters": {
-        "standard": {
-            "format": " %(levelname)s[%(asctime)s - %(name)s]: %(message)s",
-            "class": "src.colored_formatter.ColoredFormatter"
-        },
-        "json": {
-            "format": "{\"asctime\": \"%(asctime)s\", \"name\": \"%(name)s\", \"levelname\": \"%(levelname)s\", \"message\": %(message)s}",
-            "class": "pythonjsonlogger.jsonlogger.JsonFormatter"
-        }
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "standard",
-            "level": "INFO"
-        },
-        "file": {
-            "class": "src.json_file_handler.JsonFileHandler",
-            "formatter": "json",
-            "level": "DEBUG",
-            "filename": "logs/%(date).json",
-            "mode": "a"
-        }
-    },
-    "loggers": {
-        "": {
-            "handlers": ["console", "file"],
-            "level": "DEBUG",
-            "propagate": true
-        }
-    }
+  "capture_interval": 5,
+  "web_host": "http://127.0.0.1:5000/",
+  "post_api_endpoint": "api/aggregator"
 }
