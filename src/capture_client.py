@@ -23,6 +23,10 @@ def ram_metric_function() -> DTO_Metric:
     logger.debug("Getting RAM Metric")
     return DTO_Metric(name="RAM Usage", value=psutil.virtual_memory().percent)
 
+def stock_tick_metric_function() -> DTO_Metric:
+    logger.debug("Getting Stock Tick Metric")
+    return DTO_Metric(name="Stock Price", value=100.0)
+
 class DeviceHandler:
     def __init__(self, name):
         logger.debug("Initializing DeviceHandler with name: %s", name)
@@ -60,7 +64,7 @@ class AggregatorHandler:
             name=platform.node(),
             devices=[handler.device for handler in deviceHandlers])
         self.device_handlers = deviceHandlers
-        self.post_queue = deque()
+        self.snapshot_queue = deque()
 
     def register_device(self, device_handler: DeviceHandler):
         logger.debug("Registering DeviceHandler: %s", device_handler.device.name)
@@ -94,17 +98,25 @@ class AggregatorHandler:
     def capture(self):
         logger.info("Capturing data from all registered devices")
         for device_handler in self.device_handlers:
-            device_handler.capture()
-        self.post_queue.append(self.aggregator.to_json())
+            snapshot = device_handler.capture()
+            self.snapshot_queue.append((device_handler.device.name, snapshot))
+        logger.info("Snapshots appended to the queue")
+        logger.debug("Queue items: %s", {ss.to_json() for _, ss in self.snapshot_queue})
+        logger.debug("Queue length: %s", len(self.snapshot_queue))
 
     def post_aggregator(self, url: str):
-        if not self.post_queue:
+        logger.info("Posting aggregator data to URL: %s", url)
+        if not self.snapshot_queue:
             logger.info("No data to post")
             return None
         
-        logger.info("Queue length: %s", len(self.post_queue))
-        aggregator_json = self.post_queue.popleft()
-        logger.debug("Aggregator JSON object: %s", aggregator_json)
+        logger.info("Queue length: %s", len(self.snapshot_queue))
+        
+        # Collect snapshots to be posted
+        temp_snapshots = list(self.snapshot_queue)
+        
+        aggregator_json = self.aggregator.to_json()
+        logger.debug("Attempting to post Aggregator JSON object: %s", aggregator_json)
         
         try:
             response = requests.post(url, json=aggregator_json)
@@ -112,17 +124,49 @@ class AggregatorHandler:
             logger.info("Aggregator data posted successfully")
             logger.info("Response text: %s", response.text)
             logger.debug("Response status code: %s", response.status_code)
+            
+            # Remove the snapshots that were posted from the aggregator object and the queue
+            self.remove_snapshots(temp_snapshots)
+            
             return response
         except requests.exceptions.RequestException as e:
             logger.error("Connection error occurred: %s", e)
-            
-            # Re-add the JSON to the front of the queue if a connection error occurs
-            logger.debug("Readding JSON to the front of the queue")
-            self.post_queue.appendleft(aggregator_json)
+            logger.info("Aggregator snapshots length: %s", len(self.aggregator.devices[0].snapshots))
+            # Do not remove snapshots from the queue if a connection error occurs
         except requests.exceptions.HTTPError as e:
             logger.error("HTTP error occurred: %s", e)
             logger.error("Failed to post aggregator data with error code: %s", response.status_code)
             logger.info("Response text: %s", response.text)
             logger.debug("Response status code: %s", response.status_code)
-            # Do not re-add the JSON to the queue if a server/data error occurs
+            # Remove the snapshots from the queue if a server/data error occurs
+            self.remove_snapshots(temp_snapshots)
         return None
+
+    def remove_snapshots(self, temp_snapshots):
+        for device_name, snapshot in temp_snapshots:
+            self.snapshot_queue.remove((device_name, snapshot))
+            for device in self.aggregator.devices:
+                if device.name == device_name:
+                    device.snapshots.remove(snapshot)
+    
+    def flush_queue(self, url: str):
+        logger.info("Flushing the post queue")
+        while self.snapshot_queue:
+            response = self.post_aggregator(url)
+            if response is None or not response.ok:
+                logger.error("Stopping flush due to failed post")
+                break
+
+if __name__ == "__main__":
+    setup_logging()
+    logger.info("Starting capture client")
+
+    device_handler = DeviceHandler("WinOS")
+    device_handler.register_metric_function(cpu_metric_function)
+    agg_handler = AggregatorHandler([device_handler])
+    agg_handler.capture()
+    time.sleep(5)
+    agg_handler.capture()
+    agg_handler.post_aggregator("http://localhost:5000/api/v1/aggregator")
+    agg_handler.flush_queue("http://localhost:5000/api/v1/aggregator")
+    logger.info("Application Completed Successfully")

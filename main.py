@@ -23,20 +23,24 @@ def main():
     windows_device_handler.register_metric_function(ram_metric_function)
     aggregator_handler.register_device(windows_device_handler)
     logging.info("Starting capture loop")
+    i = 1
     while True:
         #logic here to send a capture to the server every 5 seconds
         logger.info("Starting capture")
         aggregator_handler.capture()
         logger.info("Capture completed")
         
+        logger.debug("Capture count for this session: %s", i)
+        i+=1
+        
         logger.debug("Aggregator data: %s", aggregator_handler.aggregator.to_json())
         
         post_url = "%s%s" % (config.web_host, config.post_api_endpoint)
         
-        logger.info("Beginning post")
+        logger.info("Posting to server")
         logger.debug("Calling post to URL: %s", post_url)
-        aggregator_handler.post_aggregator(post_url)
-        logger.info("Post completed")
+        aggregator_handler.flush_queue(post_url)
+        logger.info("Post complete")
         
         logger.info("Sleeping for %s seconds", config.capture_interval)
         time.sleep(config.capture_interval)

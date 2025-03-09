@@ -1,5 +1,0 @@
-{
-  "capture_interval": 5,
-  "web_host": "http://127.0.0.1:5000/",
-  "post_api_endpoint": "api/aggregator"
-}

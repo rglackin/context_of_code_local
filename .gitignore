@@ -2,3 +2,4 @@
 /logs
 */__pycache__/
 /logging_package/
+config.json
